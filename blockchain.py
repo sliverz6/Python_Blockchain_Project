@@ -4,10 +4,12 @@ blockchain = []
 
 def get_last_blockchain_value():
     """ 현재 블록체인 리스트의 마지막 값을 반환한다. """
+    if len(blockchain) < 1:
+        return None
     return blockchain[-1]
 
 
-def add_value(transaction_amount, last_transaction=[1]):
+def add_transaction(transaction_amount, last_transaction=[1]):
     """ 
     블록체인 리스트에 마지막 트랜잭션 함께 새로운 통화를 추가한다.
 
@@ -16,6 +18,8 @@ def add_value(transaction_amount, last_transaction=[1]):
         :last_transaction: 마지막으로 추가된 트랜잭션 (기본값 [1])
 
     """
+    if last_transaction == None:
+        last_transaction = [1]
     blockchain.append([last_transaction, transaction_amount])
 
 
@@ -38,25 +42,45 @@ def print_blockchain_elements():
         print(block)
 
 
-tx_amount = get_transaction_value()
-add_value(tx_amount)
+def verify_chain():
+    """ 블록체인을 검사하여 유효하면 True를, 그렇지 않으면 False를 반환한다. """
+    block_index = 0
+    is_valid = True
+    for block in blockchain:
+        if block_index == 0:
+            block_index += 1
+            continue
+        elif block[0] == blockchain[block_index - 1]:
+            is_valid = True
+        else:
+            is_valid = False
+            break
+        block_index += 1
+    return is_valid
 
 
 while True:
     print("Please choose")
     print("1: Add a new transaction value")
     print("2: Output the blockchain blocks")
+    print("h: Manipulate the chain")
     print("q: Quit")
     user_choice = get_user_choice()
     if user_choice == "1":
         tx_amount = get_transaction_value()
-        add_value(tx_amount, get_last_blockchain_value())
+        add_transaction(tx_amount, get_last_blockchain_value())
     elif user_choice == "2":
         print_blockchain_elements()
+    elif user_choice == "h":
+        if len(blockchain) >= 1:
+            blockchain[0] = [2]
     elif user_choice == "q":
         break
     else:
         print("Input was invalid, please pick a vlue from the list!")
-    print("Choice registered!")
+    if not verify_chain():
+        print("Invalid blockchain!")
+        break
+
 
 print("Done!")
