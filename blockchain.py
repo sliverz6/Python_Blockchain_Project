@@ -1,5 +1,12 @@
 # 블록체인 리스트를 초기화 한다.
+genesis_block = {
+    "previous_hash": "", 
+    "index": 0, 
+    "transactions": []
+}
 blockchain = []
+open_transactions = []
+owner = "Jay"
 
 
 def get_last_blockchain_value():
@@ -9,24 +16,38 @@ def get_last_blockchain_value():
     return blockchain[-1]
 
 
-def add_transaction(transaction_amount, last_transaction=[1]):
+def add_transaction(recipient, sender=owner, amount=1.0):
     """ 
     블록체인 리스트에 마지막 트랜잭션 함께 새로운 통화를 추가한다.
 
     인수: 
-        :transaction_amount: 추가될 트랜잭션량
-        :last_transaction: 마지막으로 추가된 트랜잭션 (기본값 [1])
-
+        :sender: The sender of the coins.
+        :recipient: The recipient of the coins.
+        :amount: The amount of coins sent with the transaction (default = 1.0)
     """
-    if last_transaction == None:
-        last_transaction = [1]
-    blockchain.append([last_transaction, transaction_amount])
+    transaction = {
+        'sender': sender, 
+        'recipient': recipient, 
+        'amount': amount
+    }
+    open_transactions.append(transaction)
+
+
+def mine_block():
+    last_block = blockchain[-1]
+    block = {
+        "previous_hash": "XYZ", 
+        "index": len(blockchain), 
+        "transactions": open_transactions
+    }
+    blockchain.append(block)
 
 
 def get_transaction_value():
     """ 사용자에게 새로운 트랜잭션량을 입력받아 반환한다(부동소수점 숫자). """
-    user_input = float(input("Your transaction amount please: "))
-    return user_input
+    tx_recipient = input("Enter the recipient of the transaction: ")
+    tx_amount = float(input("Your transaction amount please: "))
+    return tx_recipient, tx_amount
 
 
 def get_user_choice():
@@ -79,8 +100,10 @@ while waiting_for_input:
     print("q: Quit")
     user_choice = get_user_choice()
     if user_choice == "1":
-        tx_amount = get_transaction_value()
-        add_transaction(tx_amount, get_last_blockchain_value())
+        tx_data = get_transaction_value()
+        recipient, amount = tx_data[0], tx_data[1]
+        add_transaction(recipient, amount=amount)
+        print(open_transactions)
     elif user_choice == "2":
         print_blockchain_elements()
     elif user_choice == "h":
