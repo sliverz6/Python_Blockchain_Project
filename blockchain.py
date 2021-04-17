@@ -1,4 +1,6 @@
-# 블록체인 리스트를 초기화 한다.
+# Initializing our blockchain list
+MINING_REWARD = 10
+
 genesis_block = {
     "previous_hash": "", 
     "index": 0, 
@@ -7,60 +9,96 @@ genesis_block = {
 blockchain = [genesis_block]
 open_transactions = []
 owner = "Jay"
+participants = {"Jay"}
+
+
+def hash_block(block):
+    return "-".join([str(block[key]) for key in block])
+
+
+def get_balance(participant):
+    tx_sender = [[tx["amount"] for tx in block["transactions"] if tx["sender"] == participant] for block in blockchain]
+    open_tx_sender = [tx["amount"] for x in open_transactions if x["sender"] == participant]
+    tx_sender.append(open_tx_sender)
+    amount_sent = 0
+    for tx in tx_sender:
+        if len(tx) > 0:
+            amount_sent += tx[0]
+    tx_recipient = [[tx["amount"] for tx in block["transactions"] if tx["recipient"] == participant] for block in blockchain]
+    amount_received = 0
+    for tx in tx_recipient:
+        if len(tx) > 0:
+            amount_received += tx[0]
+    return amount_received - amount_sent
 
 
 def get_last_blockchain_value():
-    """ 현재 블록체인 리스트의 마지막 값을 반환한다. """
+    """ Returns the last value of the current blockchain """
     if len(blockchain) < 1:
         return None
     return blockchain[-1]
 
 
-def add_transaction(recipient, sender=owner, amount=1.0):
-    """ 
-    블록체인 리스트에 마지막 트랜잭션 함께 새로운 통화를 추가한다.
+def verify_transaction(transaction):
+    sender_balance = get_balance(transaction["sender"])
+    return sender_balance >= transaction["amount"]
 
-    인수: 
-        :sender: The sender of the coins.
-        :recipient: The recipient of the coins.
+
+def add_transaction(recipient, sender=owner, amount=1.0):
+    """ Append a new value as well as the last blockchain value to the blockchain 
+    
+    Arguments:
+        :sender: The sender of the coin.
+        :recipient: The reicipient of the coins.
         :amount: The amount of coins sent with the transaction (default = 1.0)
     """
     transaction = {
-        'sender': sender, 
-        'recipient': recipient, 
-        'amount': amount
+        "sender": sender, 
+        "recipient": recipient, 
+        "amount": amount
     }
-    open_transactions.append(transaction)
+    if verify_transaction(transaction):
+        open_transactions.append(transaction)
+        participants.add(sender)
+        participants.add(recipient)
+        return True
+    return False
 
 
 def mine_block():
     last_block = blockchain[-1]
-    hashed_block = "-".join([str(last_block[key]) for key in last_block])
-    print(hashed_block)
-
+    hashed_block = hash_block(last_block)
+    reward_transaction = {
+        "sender": "MINING",
+        "recipient": owner,
+        "amount": MINING_REWARD
+    }
+    open_transactions.append(reward_transaction)
     block = {
         "previous_hash": hashed_block, 
         "index": len(blockchain), 
         "transactions": open_transactions
     }
     blockchain.append(block)
+    return True
 
 
 def get_transaction_value():
-    """ 사용자에게 새로운 트랜잭션량을 입력받아 반환한다(부동소수점 숫자). """
-    tx_recipient = input("Enter the recipient of the transaction: ")
-    tx_amount = float(input("Your transaction amount please: "))
-    return tx_recipient, tx_amount
+    """ Returns the input of the user (a new transaction amount) as a float. """
+    tx_recipient = input("Enter the recipient of the transaction: ") 
+    tx_amount =  float(input("Your transaction amount please: "))
+    return (tx_recipient, tx_amount)
 
 
 def get_user_choice():
-    """ 사용자에게 메뉴 선택을 입력받아 반환한다. """
+    """ Prompts the user for its choice and return it. """
     user_input = input("Your choice: ")
     return user_input
 
 
 def print_blockchain_elements():
-    """ 현재 블록체인 리스트를 콘솔에 출력한다. """
+    """ Output all blocks of the blockchain. """
+    # Output the blockchain list to the console
     for block in blockchain:
         print("Outputting Block")
         print(block)
@@ -69,28 +107,13 @@ def print_blockchain_elements():
 
 
 def verify_chain():
-    """ 블록체인을 검사하여 유효하면 True를, 그렇지 않으면 False를 반환한다. """
-    # block_index = 0
-    is_valid = True
-    for block_index in range(len(blockchain)):
-        if block_index == 0:
+    """ Verify thr current blockchain and return True if it's valid, False or not. """
+    for (index, block) in enumerate(blockchain):
+        if index == 0:
             continue
-        elif blockchain[block_index][0] == blockchain[block_index - 1]:
-            is_valid = True
-        else:
-            is_valid = False
-            break
-    # for block in blockchain:
-    #     if block_index == 0:
-    #         block_index += 1
-    #         continue
-    #     elif block[0] == blockchain[block_index - 1]:
-    #         is_valid = True
-    #     else:
-    #         is_valid = False
-    #         break
-    #     block_index += 1
-    return is_valid
+        if block["previous_hash"] != hash_block(blockchain[index - 1]):
+            return False
+    return True
 
 
 waiting_for_input = True
@@ -100,29 +123,41 @@ while waiting_for_input:
     print("1: Add a new transaction value")
     print("2: Mine a new block")
     print("3: Output the blockchain blocks")
+    print("4: Output participants")
     print("h: Manipulate the chain")
     print("q: Quit")
     user_choice = get_user_choice()
     if user_choice == "1":
         tx_data = get_transaction_value()
         recipient, amount = tx_data[0], tx_data[1]
-        add_transaction(recipient, amount=amount)
+        if add_transaction(recipient, amount=amount):
+            print("Added transactions!")
+        else:
+            print("Transaction failed!")
         print(open_transactions)
     elif user_choice == "2":
-        mine_block()
+        if mine_block():
+            open_transactions = []
     elif user_choice == "3":
         print_blockchain_elements()
+    elif user_choice == "4":
+        print(participants)
     elif user_choice == "h":
         if len(blockchain) >= 1:
-            blockchain[0] = [2]
+            blockchain[0] = {
+                "previous_hash": "", 
+                "index": 0, 
+                "transactions": [{"sender": "Chris", "recipient": "Max", "amount": 100}]
+            }
     elif user_choice == "q":
         waiting_for_input = False
     else:
         print("Input was invalid, please pick a value from the list!")
-    # if not verify_chain():
-    #     print_blockchain_elements()
-    #     print("Invalid blockchain!")
-    #     break
+    if not verify_chain():
+        print_blockchain_elements()
+        print("Invalid blockchain!")
+        break
+    print(get_balance("Jay"))
 else:
     print("User left!")
 
