@@ -1,7 +1,8 @@
-def unlimited_arguments(*args, **keyword_args):
-    print(keyword_args)
-    for k, argument in keyword_args.items():
-        print(k, argument)
+def unlimited_arguments(*args, **kargs):
+    print(args)
+    print(kargs)
 
 
-unlimited_arguments(1, 2, 3, 4, name="Jay", age=29)
+unlimited_arguments(name="Jay", age=29)
+
+print(*[1, 2, 3, 4])
